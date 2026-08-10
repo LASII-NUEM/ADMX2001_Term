@@ -1,23 +1,32 @@
 import serial
 
 ser = serial.Serial(
-    port = "COM5",
+    port = "COM3",
     baudrate = 115200,
     timeout = 1
 )
 def cmd(comando):
     ser.write((comando + "\n").encode())
 
-display =float(input("Display: ") or "9")
-ch0 = int(input("Setgain ch0: ") or "0")
-ch1 = int(input("Setgain ch1: ") or "1")
-magnitude = int(input("Magnitude: ")or "1")
-count = int(input("Count: ") or "136")
-sweep_type = input("Sweep Type Frequency: ") or "1 1000"
-inico,fim = sweep_type.split()
-cmd(f"sweep_type {inico} {fim}")
-sweep_scale = input("Sweep Type Scale: ") or "log"
+def configurar():
 
+    display = input("Display: ") or "9"
+    ch0 = input("Setgain ch0: ") or "0"
+    ch1 = input("Setgain ch1: ") or "1"
+    magnitude = input("Magnitude: ")or "1"
+    count = input("Count: ") or "136"
+
+    sweep_type = input("Sweep Type Frequency: ") or "1 1000"
+    inico,fim = sweep_type.split()
+    sweep_scale = input("Sweep Type Scale: ") or "log"
+
+    cmd(f"display {display}")
+    cmd(f"ch0 {ch0}")
+    cmd(f"ch1 {ch1}")
+    cmd(f"magnitude {magnitude}")
+    cmd(f"count {count}")
+    cmd(f"sweep_type frequency {inico} {fim}")
+    cmd(f"sweep_scale {sweep_scale}")
 
 def medir():
     cmd("z")
@@ -30,6 +39,7 @@ def medir():
     return medidas
 
 def main ():
+    configurar()
     return medir()
 
 if __name__ == "__main__":
@@ -61,22 +71,4 @@ if __name__ == "__main__":
 ##??frequency
 ##average
 ##?offset
-
-
-##def definir_ganho(porta_serial, canal: str, valor: int):
-
-    # comandos
-    #comando = f"setgain {canal} {valor}\r\n".encode('utf-8')
-    #porta_serial.write(comando)
-
-    #resposta = porta_serial.readline().decode('utf-8').strip()
-    #prompt = porta_serial.readline().decode('utf-8').strip()
-
-    #print(f"[{canal} -> {valor}] Resposta: {resposta} | Prompt: {prompt}")
-    #return resposta
-
-
-#definir_ganho(ser, "ch0", 0)
-#definir_ganho(ser, "ch1", 1)
-
 
