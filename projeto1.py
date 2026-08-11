@@ -1,65 +1,101 @@
 import serial
 
+port = input("COM port [COM3]: ") or "COM3"
+
 ser = serial.Serial(
-    port = "COM3",
-    baudrate = 115200,
-    timeout = 1
+    port=port,
+    baudrate=115200,
+    timeout=1
 )
 def cmd(comando):
     ser.write((comando + "\n").encode())
 
+def ler_calibracao():
+    respostas = []
+
+    while True:
+        linha = ser.readline().decode().strip()
+
+        if linha:
+            respostas.append(linha)
+            print(linha)
+
+        if linha.startswith("load:"):
+            break
+
+    return respostas
+
+def calibrar_open():
+    input("Conecte o OPEN e pressione ENTER")
+
+    cmd("magnitude 1")
+    cmd("calibrate open")
+
+    ler_calibracao()
+
+
+def calibrar_short():
+    input("Conecte o SHORT e pressione ENTER")
+
+    cmd("magnitude 0.2")
+    cmd("calibrate short")
+
+    ler_calibracao()
+
+
+def calibrar_load():
+    input("Conecte o LOAD e pressione ENTER")
+
+    resistencia = input("Resistência do LOAD ") or "1000"
+    reatancia = input("Reatância do LOAD ") or "0.822"
+
+    cmd("magnitude 1")
+    cmd(f"calibrate rt {resistencia} xt {reatancia}")
+
+    ler_calibracao()
+
+
+def calibrar_todas():
+    calibrar_open()
+    calibrar_short()
+    calibrar_load()
+
 def calibrar():
     print("\n--- CALIBRATION ---")
+
     calibracoes = {
-        "open": {
-            "magnitude": "1",
-            "comando": "calibrate open"
-        },
-
-        "short": {
-            "magnitude": "0.2",
-            "comando": "calibrate short"
-        },
-
-        "load": {
-            "magnitude": "1",
-            "comando": "calibrate load"
-        }
+        "open": calibrar_open,
+        "short": calibrar_short,
+        "load": calibrar_load,
+        "todas": calibrar_todas
     }
+
     escolha = input(
         "Qual calibração deseja fazer? "
         "(open, short, load ou todas): "
     ).lower()
 
-    if escolha == "todas":
-        for nome, configuracao in calibracoes.items():
-            input(f"Conecte o {nome.upper()} e pressione ENTER")
-            cmd(f"magnitude {configuracao['magnitude']}")
-            cmd(configuracao["comando"])
-    else:
-        configuracao = calibracoes[escolha]
-        input(f"Conecte o {escolha.upper()} e pressione ENTER")
-
-        cmd(f"magnitude {configuracao['magnitude']}")
-        cmd(configuracao["comando"])
+    calibracoes[escolha]()
 
 def configurar_inicial():
 
     ch0 = input("Setgain ch0: ")
     ch1 = input("Setgain ch1: ")
+    frequency = input("Calibration frequency: ")
     magnitude = input("Magnitude: ")
     offset = input("Offset: ")
     average = input("Average: ")
     delay = input("Trigger delay: ")
-    frequency = input("Calibration frequency: ")
+
 
     cmd(f"setgain ch0 {ch0}")
     cmd(f"setgain ch1 {ch1}")
+    cmd(f"frequency {frequency}")
     cmd(f"magnitude {magnitude}")
     cmd(f"offset {offset}")
     cmd(f"average {average} ")
     cmd(f"tdelay {delay}")
-    cmd(f"frequency {frequency}")
+
 
 def configurar_sweep():
     print("\n--- SWEEP CONFIGURATION ---")
