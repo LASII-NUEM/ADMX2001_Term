@@ -1,6 +1,6 @@
 import serial
 
-port = input("COM port [COM3]: ") or "COM3"
+port = input("COM port [COM3]: ") or "COM5"
 
 ser = serial.Serial(
     port=port,
@@ -10,7 +10,8 @@ ser = serial.Serial(
 def cmd(comando):
     ser.write((comando + "\n").encode())
 
-def ler_calibracao():
+def calibrar_commit():
+    cmd("calibrate commit")
     respostas = []
 
     while True:
@@ -21,6 +22,13 @@ def ler_calibracao():
             print(linha)
 
         if linha.startswith("load:"):
+            break
+
+        if "PASSWORD>" in linha:
+            senha = input("Password: ")
+            ser.write((senha + "\n").encode())
+
+        if "commit : success" in linha:
             break
 
     return respostas
@@ -59,6 +67,7 @@ def calibrar_todas():
     calibrar_open()
     calibrar_short()
     calibrar_load()
+    calibrar_commit()
 
 def calibrar():
     print("\n--- CALIBRATION ---")
@@ -79,13 +88,13 @@ def calibrar():
 
 def configurar_inicial():
 
-    ch0 = input("Setgain ch0: ")
-    ch1 = input("Setgain ch1: ")
-    frequency = input("Calibration frequency: ")
-    magnitude = input("Magnitude: ")
-    offset = input("Offset: ")
-    average = input("Average: ")
-    delay = input("Trigger delay: ")
+    ch0 = input("Setgain ch0: voltage Gain[0]  ") or "0"
+    ch1 = input("Setgain ch1: current Gain[1] ") or "1"
+    frequency = input("Calibration frequency: [100] ") or "100"
+    magnitude = input("Magnitude: [1] ") or "1"
+    offset = input("Offset: [0] ") or "0"
+    average = input("Average: [200] ") or "200"
+    delay = input("Trigger delay: [200] ") or "200"
 
 
     cmd(f"setgain ch0 {ch0}")
@@ -96,15 +105,17 @@ def configurar_inicial():
     cmd(f"average {average} ")
     cmd(f"tdelay {delay}")
 
+##resolver 136vezes
+##calibration fixo ou temporário
 
 def configurar_sweep():
     print("\n--- SWEEP CONFIGURATION ---")
-    display = input("Display: ") or "9"
-    count = input("Count: ") or "136"
+    display = input("Display: [9] ") or "9"
+    count = input("Count: sweep [136] ") or "136"
 
-    sweep_type = input("Sweep Type Frequency: ") or "1 1000"
+    sweep_type = input("Sweep Type Frequency:[1 1000] ") or "1 1000"
     inico, fim = sweep_type.split()
-    sweep_scale = input("Sweep Type Scale: ") or "log"
+    sweep_scale = input("Sweep Type Scale: [log] ").lower() or "log"
 
     cmd(f"display {display}")
     cmd(f"count {count}")
