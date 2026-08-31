@@ -1,26 +1,31 @@
 import numpy as np
-import serial
+import tkinter as tk
+from tkinter import messagebox
 
 
 class freq_calib:
 
-    def __init__(self,
-                 Cal_load=True,
-                 Cal_short=True,
-                 Cal_load=True,
-                 serialCom=ser,
-                 calib_type="Spectrum",
-                 freq = 1e6,
-                 init_freq=1e3,
-                 final_freq=1e6,
-                 scale="LOG",
-                 points=136,
-                 gainCh0 = 1,
-                 gainCh1 =1,
-                 mag = 1,
-                 count = 20,
-                 offset = 0,
-                 delay = 0):
+    def __init__(
+            self,
+            serialCom,
+            rt: float,
+            xt: float,
+            calib_type: str,
+            freq: float,
+            init_freq: float,
+            final_freq: float,
+            scale: str,
+            points: int,
+            Cal_open: bool = True,
+            Cal_short: bool = True,
+            Cal_load: bool = True,
+            gainCh0: int = 1,
+            gainCh1: int = 1,
+            mag: float = 1,
+            count: int = 20,
+            offset: float = 0,
+            delay: float = 0
+    ):
 
         """
         :param calib_type: Type of calibration procedure. Defines whether the
@@ -62,16 +67,19 @@ class freq_calib:
         self.offset = offset
         self.delay = delay
 
-        self.Cal_load = Cal_load
+        self.Cal_open = Cal_open
         self.Cal_short = Cal_short
         self.Cal_load = Cal_load
 
+        self.rt = rt
+        self.xt = xt
+
         scaleType = ("LOG", "Linear")
-        if scaleType not in  self.scale:
+        if scaleType not in self.scale:
             raise TypeError(f"[ADMX_Calibrate] Unknown Scale Type! Available Types:{type(scaleType)}")
 
         CalType = ("Freq", "Spectrum")
-        if CalType not in  self.caltype:
+        if CalType not in self.caltype:
             raise TypeError(f"[ADMX_Calibrate] Unknown Calibration Type! Available Types:{type(CalType)}")
 
         if self.caltype == "Freq":
@@ -99,6 +107,37 @@ class freq_calib:
 
         return response
 
+    def confirm_hardware_setup(calib_type):
+
+        root = tk.Tk()
+        root.withdraw()
+
+        message = (f"Prepare the hardware for {calib_type.upper()} calibration.\n\n"
+                   "Confirm that the correct calibration setup is set"
+                   "to the ADMX2001 before continuing.")
+
+        confirmed = messagebox.askyesno(title="ADMX2001 Calibration", message=message)
+
+        root.destroy()
+
+        return confirmed
+
+    def check_calibration(self, response, calib_type):
+
+        target = calib_type.lower()
+
+        for line in response:
+
+            if line.lower().startswith(f"{target}:"):
+
+                status = line.split(":", 1)[1].strip()
+
+                if status.lower() == "done":
+                    return True
+
+                return False
+
+        return False
 
     def freq_calib(self):
 
@@ -111,16 +150,59 @@ class freq_calib:
         self.cmd(f"tdelay {self.delay}")
 
         if self.Cal_open is True:
-            self.cmd(f"calibrate open")
+
+            if not self.confirm_hardware_setup("open"):
+                print("Open calibration cancelled by user.")
+                return False
+
+            open_cal_response = self.cmd(f"calibrate open")
+
+            if self.check_calibration(open_cal_response, "open"):
+                print("Open calibration completed successfully.")
+
+                self.cmd(f"calibrate commit")
+                self.cmd(f"Analog123")
+
+            else:
+                raise RuntimeError(f" Open calibration was not completed.")
+
         if self.Cal_short is True:
-            self.cmd(f"calibrate short")
+
+            if not self.confirm_hardware_setup("short"):
+                print("Short Calibration cancelled by user.")
+                return False
+
+            self.cmd(f"magnitude 0.2")
+
+            short_cal_response = self.cmd(f"calibrate short")
+
+            if self.check_calibration(short_cal_response, "short"):
+                print("short calibration completed successfully.")
+
+                self.cmd(f"calibrate commit")
+                self.cmd(f"Analog123")
+
+            else:
+                raise RuntimeError(f" Short calibration was not completed.")
+
+            self.cmd(f"magnitude {self.mag}")
+
         if self.Cal_load is True:
-            self.cmd(f"calibrate load rt {self.rt} xt {self.xt}")
 
-        response = self.cmd(f"calibrate")
+            if not self.confirm_hardware_setup("Load"):
+                print("Load Calibration cancelled by user.")
+                return False
 
+            load_cal_response = self.cmd(f"calibrate load rt {self.rt} xt {self.xt}")
 
+            if self.check_calibration(load_cal_response, "load"):
+                print("load calibration completed successfully.")
 
+                self.cmd(f"calibrate commit")
+                self.cmd(f"Analog123")
+
+            else:
+                raise RuntimeError(f" Load calibration was not completed.")
 
     def Spectrum_calib(self):
 
