@@ -11,7 +11,6 @@ class freq_calib:
             rt: float,
             xt: float,
             calib_type: str,
-            freq: float,
             init_freq: float,
             final_freq: float,
             scale: str,
@@ -19,6 +18,7 @@ class freq_calib:
             Cal_open: bool = True,
             Cal_short: bool = True,
             Cal_load: bool = True,
+            freq: float = 1e6,
             gainCh0: int = 1,
             gainCh1: int = 1,
             mag: float = 1,
@@ -54,11 +54,11 @@ class freq_calib:
                       frequency point.
         """
         self.ser = serialCom
-        self.caltype = calib_type
+        self.caltype = calib_type.lower()
         self.Freq = freq
         self.init_freq = init_freq
         self.final_freq = final_freq
-        self.scale = scale
+        self.scale = scale.lower()
         self.Freqpoints = points
         self.gainCh0 = gainCh0
         self.gainCh1 = gainCh1
@@ -74,25 +74,26 @@ class freq_calib:
         self.rt = rt
         self.xt = xt
 
-        scaleType = ("LOG", "Linear")
-        if scaleType not in self.scale:
+        scaleType = ("log", "linear")
+        if self.scale not in scaleType:
             raise TypeError(f"[ADMX_Calibrate] Unknown Scale Type! Available Types:{type(scaleType)}")
 
-        CalType = ("Freq", "Spectrum")
-        if CalType not in self.caltype:
+        CalType = ("freq", "spectrum")
+        if self.caltype not in CalType:
             raise TypeError(f"[ADMX_Calibrate] Unknown Calibration Type! Available Types:{type(CalType)}")
 
-        if self.caltype == "Freq":
-            self.freq_calib(self.Freq)
-        elif CalType == "Spectrum":
-            if self.scale == "LOG":
-                self.freq_array = np.logspace(self.init_freq, self.final_freq, self.Freqpoints)
-                self.Spectrum_calib(self.freq_array)
-            elif self.scale == "Linear":
+        if self.caltype == "freq":
+            self.freq_calib()
+
+        elif self.caltype == "spectrum":
+
+            if self.scale == "log":
+                self.freq_array = np.logspace(np.log10(self.init_freq), np.log10(self.final_freq), self.Freqpoints)
+            elif self.scale == "linear":
                 self.freq_array = np.linspace(self.init_freq, self.final_freq, self.Freqpoints)
-                self.Spectrum_calib(self.freq_array)
-            else:
-                raise TypeError(f"[ADMX_Calibrate] Unknown Scale Type! Available Types:{type(scaleType)}")
+
+            self.Spectrum_calib()
+
         else:
             raise TypeError(f"[ADMX_Calibrate] Unknown Calibration Type! Available Types:{type(CalType)}")
 
@@ -107,7 +108,7 @@ class freq_calib:
 
         return response
 
-    def confirm_hardware_setup(calib_type):
+    def confirm_hardware_setup(self,calib_type):
 
         root = tk.Tk()
         root.withdraw()
@@ -189,7 +190,7 @@ class freq_calib:
 
         if self.Cal_load is True:
 
-            if not self.confirm_hardware_setup("Load"):
+            if not self.confirm_hardware_setup("load"):
                 print("Load Calibration cancelled by user.")
                 return False
 

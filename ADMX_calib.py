@@ -41,11 +41,12 @@ try:
     )
 
     if ser.is_open:
-        calibrate_utils.freq_calib(Cal_load=True, Cal_short=True, Cal_load=True,
+        calibrate_utils.freq_calib(Cal_open=True, Cal_short=False, Cal_load=False,
+                                   rt=1.3e3, xt=1.3e-3,
                                    serialCom=ser,
-                                   calib_type="Spectrum",
-                                   init_freq=1e3, final_freq=1e6, scale="LOG", points=136, gainCh0=1, gainCh1=1, mag=1,
-                                   count=20)
+                                   calib_type="freq",
+                                   init_freq=1e3, final_freq=1e6, scale="LOG", points=136,
+                                   gainCh0=1, gainCh1=1, mag=1, count=20)
 
 except serial.SerialException as error:
     print(f"Serial connection failed: {error}")
