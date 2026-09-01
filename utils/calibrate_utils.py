@@ -138,6 +138,10 @@ class freq_calib:
         if command_lower.startswith("calibrate erase"):
             return None
 
+        # CALIBRATE ERASE
+        if command_lower.startswith("calibrate reload"):
+            return None
+
         # CALIBRATE COMMIT
         if command_lower.startswith("calibrate list") and self.caltype == "freq":
             response = self.ser.readline().decode(errors="ignore").strip()
@@ -295,12 +299,14 @@ class freq_calib:
             self.cmd(f"magnitude 0.2")
             for i, freq in enumerate(self.freq_array):
                 self.cmd(f"frequency {freq}")
+                self.cmd("calibrate reload")
                 self.calibrate("short", first_freq = (i == 0))
             self.cmd(f"magnitude {self.mag}")
 
         if self.Cal_load:
             for i, freq in enumerate(self.freq_array):
                 self.cmd(f"frequency {freq}")
+                self.cmd("calibrate reload")
                 self.calibrate("load", first_freq=(i == 0))
 
         Checkout_list = self.cmd("calibrate list")[:-1]
@@ -317,6 +323,5 @@ class freq_calib:
             root.destroy()
         else:
             raise RuntimeError(f" Calibration List was not completed.")
-
 
         return None
