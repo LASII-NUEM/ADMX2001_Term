@@ -305,14 +305,14 @@ class freq_calib:
 
         Checkout_list = self.cmd("calibrate list")[:-1]
 
-        if np.array_equal(Checkout_list, self.freq_array):
+        if len(Checkout_list) == self.Freqpoints:
             root = tk.Tk()
             root.withdraw()
 
             message = (f"Spectrum Calibration at: \n"
                        f"{self.init_freq} - {self.final_freq} [kHz] | {self.Freqpoints} points \n\n"
                        f"Completed and saved successfully.\n\n"
-                       "To begin measurements, run ADMX_MEAS.")
+                       "To begin measurements, run ADMX_MEAS.py")
             messagebox.showinfo(title="ADMX2001 Calibration", message=message)
             root.destroy()
         else:
