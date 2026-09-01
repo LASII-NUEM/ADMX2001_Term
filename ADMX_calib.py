@@ -62,6 +62,10 @@ CALIBRATION_CONFIG = {
     "calib_type": "spectrum",
 
     # -------------------------------------------------------------------------
+    # Frequency calibration
+    "freq": 1e6,
+
+    # -------------------------------------------------------------------------
     # Frequency Spectrum
     # init_freq  : Initial frequency [Hz]
     # final_freq : Final frequency [Hz]
@@ -85,7 +89,7 @@ CALIBRATION_CONFIG = {
     "gain_ch0": 1,
     "gain_ch1": 1,
     "mag": 1.0,
-    "count": 20,
+    "avg": 20,
 }
 
 try:

@@ -16,14 +16,14 @@ class freq_calib:
             final_freq: float,
             scale: str,
             points: int,
-            cal_open: bool = True,
-            cal_short: bool = True,
-            cal_load: bool = True,
-            freq: float = 1e6,
-            gain_ch0: int = 1,
-            gain_ch1: int = 1,
-            mag: float = 1,
-            count: int = 20,
+            freq: float,
+            gain_ch0: int,
+            gain_ch1: int,
+            mag: float,
+            avg: int,
+            cal_open: bool ,
+            cal_short: bool,
+            cal_load: bool ,
             offset: float = 0,
             delay: float = 200):
 
@@ -63,7 +63,7 @@ class freq_calib:
         self.gain_Ch0 = gain_ch0
         self.gain_Ch1 = gain_ch1
         self.mag = mag
-        self.count = count
+        self.avg = avg
         self.offset = offset
         self.delay = delay
 
@@ -249,7 +249,7 @@ class freq_calib:
         self.cmd(f"frequency {self.Freq}")
         self.cmd(f"magnitude {self.mag}")
         self.cmd(f"offset {self.offset}")
-        self.cmd(f"average {self.count}")
+        self.cmd(f"average {self.avg}")
         self.cmd(f"tdelay {self.delay}")
 
         if self.Cal_open:
@@ -287,7 +287,7 @@ class freq_calib:
         self.cmd(f"setgain ch1 {self.gain_Ch1}")
         self.cmd(f"magnitude {self.mag}")
         self.cmd(f"offset {self.offset}")
-        self.cmd(f"average {self.count}")
+        self.cmd(f"average {self.avg}")
         self.cmd(f"tdelay {self.delay}")
 
         if self.Cal_open:
