@@ -21,9 +21,11 @@ class freq_calib:
             gain_ch1: int,
             mag: float,
             avg: int,
-            cal_open: bool ,
+            cal_open: bool,
             cal_short: bool,
-            cal_load: bool ,
+            cal_load: bool,
+            saveCal: bool,
+            cal_filename: str,
             offset: float = 0,
             delay: float = 200):
 
@@ -53,6 +55,7 @@ class freq_calib:
         :param count: Number of measurements/acquisitions performed at each
                       frequency point.
         """
+
         self.ser = serialCom
         self.caltype = calib_type.lower()
         self.Freq = freq * 1e-3
@@ -78,14 +81,8 @@ class freq_calib:
         self.rt = rt
         self.xt = xt
 
-        # First of all Erase the previous calibration
-        self.cmd(f"calibrate erase")
-        erase_response = self.cmd(f"Analog123")
-
-        if erase_response.lower().startswith("erase : success"):
-            print(f"Erase calibration completed. \n")
-        else:
-            raise RuntimeError(f" Erase Calibration was not completed.")
+        self.saveCal = saveCal
+        self.cal_filename = cal_filename
 
         scaleType = ("log", "linear")
         if self.scale not in scaleType:
@@ -95,6 +92,28 @@ class freq_calib:
         if self.caltype not in CalType:
             raise TypeError(f"[ADMX_Calibrate] Unknown Calibration Type! Available Types:{type(CalType)}")
 
+        #  check parameters limits
+
+        if self.init_freq < 1:
+            raise TypeError(f"[ADMX_meas] Initial frequency under the limit")
+
+        if self.final_freq > 10000:
+            raise TypeError(f"[ADMX_meas] Final frequency over the limit")
+
+        if self.Freqpoints > 450:
+            raise TypeError(f"[ADMX_meas] Calibration points over the limit")
+
+
+        # First of all Erase the previous calibration
+        self.cmd(f"calibrate erase")
+        erase_response = self.cmd(f"Analog123")
+
+        if erase_response.lower().startswith("erase : success"):
+            print(f"Erase calibration completed. \n")
+        else:
+            raise RuntimeError(f" Erase Calibration was not completed.")
+
+        #  set Calibration Mode
         if self.caltype == "freq":
             self.freq_calib()
 
@@ -104,11 +123,11 @@ class freq_calib:
                 self.freq_array = np.logspace(np.log10(self.init_freq), np.log10(self.final_freq), self.Freqpoints)
             elif self.scale == "linear":
                 self.freq_array = np.linspace(self.init_freq, self.final_freq, self.Freqpoints)
-
             self.Spectrum_calib()
 
         else:
             raise TypeError(f"[ADMX_Calibrate] Unknown Calibration Type! Available Types:{type(CalType)}")
+
 
     def cmd(self, command):
         """
@@ -212,7 +231,7 @@ class freq_calib:
 
         return False
 
-    def calibrate(self, calib_type, first_freq = True):
+    def calibrate(self, calib_type, first_freq=True):
 
         if first_freq:
             if not self.confirm_hardware_setup(calib_type):
@@ -240,10 +259,31 @@ class freq_calib:
 
         return True
 
+    def checkLsRs(self):
+        # Check Ls Rs
+        self.cmd(f"frequency 1000")
+        self.cmd(f"display 3")
+        LsRs = self.cmd(f"z")
+
+        values = LsRs.split(",")
+        Ls = float(values[1])
+        Rs = float(values[2])
+
+        root = tk.Tk()
+        root.withdraw()
+
+        message = (f"Short residual LsRs @ 1 MHz \n\n"
+                   f"   Ls = {Ls} | (Ls < 20 mH) \n"
+                   f"   Rs = {Rs} | (Rs < 0.5 Ω) \n\n"
+                   "Confirm that LsRs values are within the limits")
+
+        confirmed = messagebox.askyesno(title="ADMX2001 Calibration", message=message)
+        root.destroy()
+
+        return confirmed
+
     def freq_calib(self):
-        """
-        :return:
-        """
+
         self.cmd(f"setgain ch0 {self.gain_Ch0}")
         self.cmd(f"setgain ch1 {self.gain_Ch1}")
         self.cmd(f"frequency {self.Freq}")
@@ -256,6 +296,12 @@ class freq_calib:
             self.calibrate("open", True)
 
         if self.Cal_short:
+
+            if not self.checkLsRs():
+                raise RuntimeError("[ADMX SHORT] Ls/Rs measurement is outside the allowed limits.\n"
+                                   "Check the short calibration hardware.")
+
+            self.cmd(f"frequency {self.Freq}")
             self.cmd(f"magnitude 0.2")
             self.calibrate("short", True)
             self.cmd(f"magnitude {self.mag}")
@@ -280,9 +326,7 @@ class freq_calib:
         return None
 
     def Spectrum_calib(self):
-        """
-        :return:
-        """
+
         self.cmd(f"setgain ch0 {self.gain_Ch0}")
         self.cmd(f"setgain ch1 {self.gain_Ch1}")
         self.cmd(f"magnitude {self.mag}")
@@ -293,14 +337,17 @@ class freq_calib:
         if self.Cal_open:
             for i, freq in enumerate(self.freq_array):
                 self.cmd(f"frequency {freq}")
-                self.calibrate("open", first_freq = (i == 0))
+                self.calibrate("open", first_freq=(i == 0))
 
         if self.Cal_short:
-            self.cmd(f"magnitude 0.2")
+            if not self.checkLsRs():
+                raise RuntimeError("[ADMX SHORT] Ls/Rs measurement is outside the allowed limits.\n"
+                                   "Check the short calibration hardware.")
+
             for i, freq in enumerate(self.freq_array):
                 self.cmd(f"frequency {freq}")
                 self.cmd("calibrate reload")
-                self.calibrate("short", first_freq = (i == 0))
+                self.calibrate("short", first_freq=(i == 0))
             self.cmd(f"magnitude {self.mag}")
 
         if self.Cal_load:

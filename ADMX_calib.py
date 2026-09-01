@@ -30,7 +30,7 @@ from utils import calibrate_utils
 # USER CONFIGURATION
 # =============================================================================
 
-ADMXport = "COM5"
+ADMXport = "COM6"
 
 CALIBRATION_CONFIG = {
     # -------------------------------------------------------------------------
@@ -38,9 +38,9 @@ CALIBRATION_CONFIG = {
     # Select which calibration standards will be performed.
     # Set True to enable or False to skip the calibration step.
 
-    "cal_open": True,
+    "cal_open": False,
     "cal_short": True,
-    "cal_load": True,
+    "cal_load": False,
 
     # -------------------------------------------------------------------------
     # Load Standard
@@ -50,7 +50,8 @@ CALIBRATION_CONFIG = {
     # rt : Resistive component [Ohm]
     # xt : Reactive component [Ohm]
     #
-    # These parameters are only required when cal_load = True.
+    # These parameters are only required when cal_load = True
+
     "rt": 1e3,
     "xt": 1.3e-3,
 
@@ -59,10 +60,14 @@ CALIBRATION_CONFIG = {
     # Defines the calibration procedure:
     #   "freq"     -> Single-frequency calibration
     #   "spectrum" -> Frequency-spectrum calibration
+
     "calib_type": "spectrum",
 
     # -------------------------------------------------------------------------
     # Frequency calibration
+    #
+    # These parameters are used when meas_type = "freq"
+
     "freq": 1e6,
 
     # -------------------------------------------------------------------------
@@ -86,10 +91,18 @@ CALIBRATION_CONFIG = {
     # mag      : Excitation signal magnitude [V]
     # count    : Number of measurements used for averaging
 
-    "gain_ch0": 1,
-    "gain_ch1": 1,
+    "gain_ch0": 0,
+    "gain_ch1": 0,
     "mag": 1.0,
     "avg": 20,
+
+    # -------------------------------------------------------------------------
+    # ADMX2001 Calibration Data
+    # saveCal : Save the calibration data in a .npy file
+    # cal_filename:  Calibration file name
+
+    "saveCal": True,
+    "cal_filename": "Cal_"
 }
 
 try:

@@ -30,7 +30,7 @@ from utils import meas_utils
 # USER CONFIGURATION
 # =============================================================================
 
-ADMXport = "COM5"
+ADMXport = "COM6"
 
 MEASUREMENT_CONFIG = {
     # -------------------------------------------------------------------------
@@ -66,6 +66,8 @@ MEASUREMENT_CONFIG = {
 
     # -------------------------------------------------------------------------
     # Frequency measurement
+    #
+    # These parameters are used when meas_type = "freq".
     "freq" : 1e6,
 
     # Frequency Spectrum
@@ -88,6 +90,7 @@ MEASUREMENT_CONFIG = {
     # count    : Number of measurements used for averaging
     "gain_ch0": 1,
     "gain_ch1": 1,
+    "Autogain": False,
     "mag": 1.0,
     "count": 5,
     "avg": 10,
@@ -98,6 +101,10 @@ MEASUREMENT_CONFIG = {
     "cal_open": True,
     "cal_short": True,
     "cal_load": True,
+
+
+    # Measurement filename
+    "filename": "testC0",
 }
 
 try:

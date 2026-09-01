@@ -26,6 +26,8 @@ class freq_meas:
             cal_open: bool,
             cal_short: bool,
             cal_load: bool,
+            filename:str,
+            Autogain: str,
             offset: float = 0,
             delay: float = 200,
     ):
@@ -63,8 +65,10 @@ class freq_meas:
         self.final_freq = final_freq * 1e-3
         self.scale = scale.lower()
         self.Freqpoints = points
+
         self.gain_Ch0 = gain_ch0
         self.gain_Ch1 = gain_ch1
+        self.autogain = Autogain
         self.mag = mag
         self.count = count
         self.offset = offset
@@ -76,13 +80,26 @@ class freq_meas:
         self.Cal_short = cal_short
         self.Cal_load = cal_load
 
+        self.filename=filename
+
+
         scaleType = ("log", "linear")
         if self.scale not in scaleType:
-            raise TypeError(f"[ADMX_Calibrate] Unknown Scale Type! Available Types:{type(scaleType)}")
+            raise TypeError(f"[ADMX_meas] Unknown Scale Type! Available Types:{type(scaleType)}")
 
         MeasType = ("freq", "spectrum")
         if self.meastype not in MeasType:
-            raise TypeError(f"[ADMX_Calibrate] Unknown Calibration Type! Available Types:{type(MeasType)}")
+            raise TypeError(f"[ADMX_meas] Unknown Calibration Type! Available Types:{type(MeasType)}")
+
+        if self.init_freq <1:
+            raise TypeError(f"[ADMX_meas] Initial frequency under the limit")
+
+        if self.final_freq > 10000:
+            raise TypeError(f"[ADMX_meas] Final frequency over the limit")
+
+        if self.final_freq > 10000:
+            raise TypeError(f"[ADMX_meas] Final frequency over the limit")
+
 
         DISPLAY_MODES = {0: ("Cs", "Rs"), 1: ("Cs", "D"), 2: ("Cs", "Q"), 3: ("Ls", "Rs"), 4: ("Ls", "D"),
                          5: ("Ls", "Q"), 6: ("R", "X"), 7: ("Z", "deg"), 8: ("Z", "rad"), 9: ("Cp", "Rp"),
@@ -190,7 +207,7 @@ class freq_meas:
 
     def saveCSV(self):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filepath = f"./results/ADMX_{timestamp}.npy"
+        filepath = f"./results/ADMX_{self.filename}_{timestamp}.npy"
 
         data = {key: value for key, value in self.__dict__.items() if key != "ser"}
         np.save(filepath, data, allow_pickle=True)
@@ -201,8 +218,12 @@ class freq_meas:
 
     def freq_meas(self):
 
-        self.cmd(f"setgain ch0 {self.gain_Ch0}")
-        self.cmd(f"setgain ch1 {self.gain_Ch1}")
+        if self.autogain:
+            self.cmd(f"setgain auto")
+        else:
+            self.cmd(f"setgain ch0 {self.gain_Ch0}")
+            self.cmd(f"setgain ch1 {self.gain_Ch1}")
+
         self.cmd(f"frequency {self.Freq}")
         self.cmd(f"magnitude {self.mag}")
         self.cmd(f"offset {self.offset}")
@@ -220,8 +241,12 @@ class freq_meas:
 
     def Spectrum_meas(self):
 
-        self.cmd(f"setgain ch0 {self.gain_Ch0}")
-        self.cmd(f"setgain ch1 {self.gain_Ch1}")
+        if self.autogain:
+            self.cmd(f"setgain auto")
+        else:
+            self.cmd(f"setgain ch0 {self.gain_Ch0}")
+            self.cmd(f"setgain ch1 {self.gain_Ch1}")
+
         self.cmd(f"magnitude {self.mag}")
         self.cmd(f"offset {self.offset}")
         self.cmd(f"average {self.avg}")
