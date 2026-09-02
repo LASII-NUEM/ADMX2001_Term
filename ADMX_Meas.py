@@ -30,7 +30,7 @@ from utils import meas_utils
 # USER CONFIGURATION
 # =============================================================================
 
-ADMXport = "COM4"
+ADMXport = "COM6"
 
 MEASUREMENT_CONFIG = {
     # -------------------------------------------------------------------------
@@ -38,7 +38,7 @@ MEASUREMENT_CONFIG = {
     # Defines the measurement procedure:
     #   "freq"     -> Single-frequency calibration
     #   "spectrum" -> Frequency-spectrum calibration
-    "meas_type": "freq",
+    "meas_type": "spectrum",
 
     # Measurement Mode
     # Defines the measurement mode
@@ -61,7 +61,7 @@ MEASUREMENT_CONFIG = {
     #     15: ("G", "B"),
     #     16: ("Y", "deg"),
     #     17: ("Y", "rad"),
-    #     18: ("None", "None"),
+    #     18: ("None", "None")}
     "mode":9,
 
     # -------------------------------------------------------------------------
@@ -80,7 +80,7 @@ MEASUREMENT_CONFIG = {
     "init_freq": 1e3,
     "final_freq": 1e6,
     "scale": "LOG",
-    "points": 4,
+    "points": 136,
 
     # -------------------------------------------------------------------------
     # ADMX2001 Measurement Settings
@@ -102,9 +102,8 @@ MEASUREMENT_CONFIG = {
     "cal_short": True,
     "cal_load": True,
 
-
     # Measurement filename
-    "filename": "testC0",
+    "filename": "test",
 }
 
 try:

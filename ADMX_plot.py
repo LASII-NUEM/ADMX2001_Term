@@ -23,8 +23,8 @@ from utils import plot_utils
 #   Python
 # =============================================================================
 
-filename = "./results/ADMX_testC0_20260901_194906.npy"
+filename = "./results/ADMX_test_20260902_194357.npy"
 
 data = plot_utils.ReadNPY(filename)
 
-plot_utils.ReadNPY.plot(data)
+data.plot()

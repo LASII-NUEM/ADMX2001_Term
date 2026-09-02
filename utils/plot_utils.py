@@ -58,12 +58,17 @@ class ReadNPY:
         self.meastype = self.data["meastype"].lower()
         self.count = int(self.data["count"])
         self.mode = int(self.data["mode"])
+        self.axis = self.data["scale"]
 
         MeasType = ("freq", "spectrum")
         if self.meastype == "freq":
-            self.freq = self.data["freq"]
+            self.freq = np.array([self.data["Freq"]], dtype=float)
+            self.raw = np.asarray(self.data["freq_meas_result"][:-1])
+
         elif self.meastype == "spectrum":
-            self.freq = self.data["freq_array"]
+            self.freq = np.asarray(self.data["freq_array"], dtype=float)
+            self.raw = np.asarray(self.data["freq_meas_result"])
+
         else:
             raise TypeError(f"[ADMX_meas] Unknown Calibration Type! Available Types:{type(MeasType)}")
 
@@ -80,7 +85,8 @@ class ReadNPY:
         self.unit1 = self.UNITS[self.meas1]
         self.unit2 = self.UNITS[self.meas2]
 
-        self.raw = np.asarray(self.data["freq_meas_result"])
+        if self.raw.ndim == 1:
+            self.raw = self.raw.reshape(1, -1)
 
         expected_shape = (len(self.freq), self.count)
 
@@ -136,7 +142,9 @@ class ReadNPY:
                 self.meas1_array[f_idx, retry_idx] = value1
                 self.meas2_array[f_idx, retry_idx] = value2
 
-    def plot(data):
+    def plot(self):
+
+        data = self
 
         ylabel1 = (f"{data.meas1} [{data.unit1}]"
                    if data.unit1 else data.meas1)
@@ -149,14 +157,19 @@ class ReadNPY:
             fig, ax1 = plt.subplots(figsize=(10, 6))
             ax2 = ax1.twinx()
             for retry in range(data.count):
-                ax1.semilogx(data.freq, data.meas1_array[:, retry], marker=".", label=f"Retry {retry}")
-                ax1.semilogx(data.freq, data.meas2_array[:, retry], marker=".", label=f"Retry {retry}")
+
+                if self.axis == "log":
+                    ax1.semilogx(data.freq, data.meas1_mean, color="b", label=f"Retry {retry}")
+                    ax2.semilogx(data.freq, data.meas2_mean, color="r", label=f"Retry {retry}")
+                if self.axis == "linear":
+                    ax1.loglog(data.freq, data.meas1_mean, color="b", label=f"Retry {retry}")
+                    ax2.loglog(data.freq, data.meas2_mean, color="r", label=f"Retry {retry}")
 
             ax1.set_xlabel("Frequency [Hz]")
             ax1.set_ylabel(ylabel1)
             ax2.set_ylabel(ylabel2)
 
-            ax1.set_title(f"ADMX2001 - {data.meas1} | {data.meas2}")
+            ax1.set_title(f"ADMX2001 - Average {data.meas1} | {data.meas2}")
             ax1.grid(True)
             plt.tight_layout()
             plt.show()
@@ -165,20 +178,30 @@ class ReadNPY:
 
             fig, ax1 = plt.subplots(figsize=(10, 6))
             ax2 = ax1.twinx()
-
             retries = np.arange(data.count)
 
-            ax1.plot(retries, data.meas1_array[0, :], marker=".", label=data.meas1)
-            ax2.plot(retries, data.meas2_array[0, :], marker=".", linestyle="--", label=data.meas2)
+            ax1.plot(retries, data.meas1_array[0, :], color="b", label=data.meas1)
+            ax2.plot(retries, data.meas2_array[0, :], color="r", label=data.meas2)
 
-            ax1.set_xlabel("Retry")
+            ax1.set_xlabel("Frequency [Hz]")
             ax1.set_ylabel(ylabel1)
             ax2.set_ylabel(ylabel2)
 
-            ax1.set_title(f"ADMX2001 - {data.meas1} / {data.meas2} "
+            ax1.set_title(f"ADMX2001 - {data.meas1} | {data.meas2} "
                           f"@ {data.freq[0]:g} Hz")
 
             ax1.grid(True)
+
+            # Mean and standard deviation text
+            text = (f"{data.meas1}: "
+                    f"mean = {data.meas1_mean[0]:.4e}, std = {data.meas1_std[0]:.4e}\n"
+                    f"{data.meas2}: "
+                    f"mean = {data.meas2_mean[0]:.4e}, std = {data.meas2_std[0]:.4e}")
+
+            ax1.text(0.3, 0.98, text,
+                     transform=ax1.transAxes,
+                     verticalalignment="top",
+                     bbox=dict(boxstyle="round", alpha=0.2))
 
             lines1, labels1 = ax1.get_legend_handles_labels()
             lines2, labels2 = ax2.get_legend_handles_labels()

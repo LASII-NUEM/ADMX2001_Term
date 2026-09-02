@@ -47,15 +47,16 @@ Electrical Impedance Spectroscopy
 
 ADMX2001-Term/
 
-    ADMX_Calib.py
+    ADMX_calib.py
     
-    ADMX_Meas.py
+    ADMX_meas.py
 
-    ADMX_Plot.py
+    ADMX_plot.py
     
     utils/
         calibrate_utils.py
         meas_utils.py
+        plot_utils.py
 
     requirements.txt
 
@@ -71,7 +72,7 @@ Required Python packages will be added to `requirements.txt` as the project evol
 
 The initial development setup consists of:
 
-- Analog Devices EVAL-ADMX2001
+- Analog Devices EVAL-ADMX2001B
 - Impedance measurement fixture or sensor
 - PC running the Python terminal framework
 
@@ -82,12 +83,12 @@ The project is currently under development.
 The initial development focuses on:
 
 - ADMX2001 communication
-- Terminal command interface
+- Open, Short, and Load Calibration
+- Full-spectrum Calibration
 - Frequency sweep acquisition
-- Full-spectrum calibration
-- Open, Short, and Load measurements
-- Calibration data storage
-- Impedance compensation
+
+
+
 
 ## License
 
