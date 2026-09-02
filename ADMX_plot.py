@@ -28,5 +28,3 @@ filename = "./results/ADMX_testC0_20260901_194906.npy"
 data = plot_utils.ReadNPY(filename)
 
 plot_utils.ReadNPY.plot(data)
-
-plot_utils.ReadNPY.EPS(data)
