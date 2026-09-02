@@ -45,14 +45,17 @@ Electrical Impedance Spectroscopy
 
 ## Project Structure
 
-ADMX2001-Terminal/
+ADMX2001-Term/
 
     ADMX_Calib.py
     
     ADMX_Meas.py
+
+    ADMX_Plot.py
     
     utils/
         calibrate_utils.py
+        meas_utils.py
 
     requirements.txt
 

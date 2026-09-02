@@ -30,7 +30,7 @@ from utils import meas_utils
 # USER CONFIGURATION
 # =============================================================================
 
-ADMXport = "COM6"
+ADMXport = "COM4"
 
 MEASUREMENT_CONFIG = {
     # -------------------------------------------------------------------------
@@ -38,7 +38,7 @@ MEASUREMENT_CONFIG = {
     # Defines the measurement procedure:
     #   "freq"     -> Single-frequency calibration
     #   "spectrum" -> Frequency-spectrum calibration
-    "meas_type": "spectrum",
+    "meas_type": "freq",
 
     # Measurement Mode
     # Defines the measurement mode
@@ -88,8 +88,8 @@ MEASUREMENT_CONFIG = {
     # gain_ch1 : Current channel gain
     # mag      : Excitation signal magnitude [V]
     # count    : Number of measurements used for averaging
-    "gain_ch0": 1,
-    "gain_ch1": 1,
+    "gain_ch0": 0,
+    "gain_ch1": 0,
     "Autogain": False,
     "mag": 1.0,
     "count": 5,
