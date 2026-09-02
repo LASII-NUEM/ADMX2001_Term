@@ -30,7 +30,7 @@ from utils import calibrate_utils
 # USER CONFIGURATION
 # =============================================================================
 
-ADMXport = "COM6"
+ADMXport = "COM4"
 
 CALIBRATION_CONFIG = {
     # -------------------------------------------------------------------------

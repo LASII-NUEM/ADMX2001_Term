@@ -109,7 +109,10 @@ class freq_calib:
         erase_response = self.cmd(f"Analog123")
 
         if erase_response.lower().startswith("erase : success"):
-            print(f"Erase calibration completed. \n")
+            print("-----------------------------------------\n")
+            print(f"Erase calibration completed.  ☑ \n")
+            print("-----------------------------------------\n")
+
         else:
             raise RuntimeError(f" Erase Calibration was not completed.")
 
@@ -157,11 +160,11 @@ class freq_calib:
         if command_lower.startswith("calibrate erase"):
             return None
 
-        # CALIBRATE ERASE
+        # CALIBRATE RELOAD
         if command_lower.startswith("calibrate reload"):
             return None
 
-        # CALIBRATE COMMIT
+        # CALIBRATE LIST
         if command_lower.startswith("calibrate list") and self.caltype == "freq":
             response = self.ser.readline().decode(errors="ignore").strip()
             print(f"RX: {response}\n")
@@ -231,11 +234,11 @@ class freq_calib:
 
         return False
 
-    def calibrate(self, calib_type, first_freq=True):
+    def calibrate(self, calib_type, freq ,first_freq=True):
 
-        if first_freq:
+        if first_freq and calib_type != "short":
             if not self.confirm_hardware_setup(calib_type):
-                print(f"{calib_type} calibration cancelled by user.\n")
+                print(f"{calib_type} calibration @ {freq} - Cancelled by user.\n")
                 return False
 
         if calib_type == "load":
@@ -244,18 +247,21 @@ class freq_calib:
             setattr(self, f"{calib_type}_cal_response", self.cmd(f"calibrate {calib_type}"))
 
         if self.check_calibration(calib_type):
-            print(f"{calib_type} calibration completed successfully.\n")
-
+            print("-----------------------------------------\n")
+            print(f"{calib_type} calibration @ {freq} kHz - Completed successfully. ☑☑☑\n")
+            print("-----------------------------------------\n")
             self.cmd(f"calibrate commit")
             commit_response = self.cmd(f"Analog123")
 
             if commit_response.lower().startswith("commit : success"):
-                print(f"{calib_type} calibration commited. \n")
+                print("-----------------------------------------\n")
+                print(f"{calib_type} calibration @ {freq} kHz - Commited.  ☑☑☑ \n")
+                print("-----------------------------------------\n")
             else:
-                raise RuntimeError(f"{calib_type} Calibration was not commited.")
+                raise RuntimeError(f"{calib_type} Calibration @ {freq} kHz was not commited.")
 
         else:
-            raise RuntimeError(f" {calib_type} calibration was not completed.")
+            raise RuntimeError(f" {calib_type} calibration @ {freq} kHz was not completed.")
 
         return True
 
@@ -286,28 +292,34 @@ class freq_calib:
 
         self.cmd(f"setgain ch0 {self.gain_Ch0}")
         self.cmd(f"setgain ch1 {self.gain_Ch1}")
-        self.cmd(f"frequency {self.Freq}")
         self.cmd(f"magnitude {self.mag}")
         self.cmd(f"offset {self.offset}")
         self.cmd(f"average {self.avg}")
         self.cmd(f"tdelay {self.delay}")
 
         if self.Cal_open:
-            self.calibrate("open", True)
+            self.cmd(f"frequency {self.Freq}")
+            self.calibrate("open", freq = self.Freq, first_freq=True)
 
         if self.Cal_short:
+
+            if not self.confirm_hardware_setup("Short"):
+                print(f" Short calibration @ {self.Freq} - Cancelled by user.\n")
+                return False
 
             if not self.checkLsRs():
                 raise RuntimeError("[ADMX SHORT] Ls/Rs measurement is outside the allowed limits.\n"
                                    "Check the short calibration hardware.")
 
+            self.cmd(f"setgain ch0 {self.gain_Ch0}")
+            self.cmd(f"setgain ch1 {self.gain_Ch1}")
             self.cmd(f"frequency {self.Freq}")
             self.cmd(f"magnitude 0.2")
-            self.calibrate("short", True)
+            self.calibrate("short", freq = self.Freq, first_freq=True)
             self.cmd(f"magnitude {self.mag}")
 
         if self.Cal_load:
-            self.calibrate("load", True)
+            self.calibrate("load",freq = self.Freq, first_freq=True)
 
         Checkout_list = self.cmd(f"calibrate list")
         List_freq = float(Checkout_list.split(":")[1].split()[0])
@@ -337,9 +349,14 @@ class freq_calib:
         if self.Cal_open:
             for i, freq in enumerate(self.freq_array):
                 self.cmd(f"frequency {freq}")
-                self.calibrate("open", first_freq=(i == 0))
+                self.calibrate("open", first_freq=(i == 0), freq=freq)
 
         if self.Cal_short:
+
+            if not self.confirm_hardware_setup("Short"):
+                print(f" Short calibration @ a spectrum - Cancelled by user.\n")
+                return False
+
             if not self.checkLsRs():
                 raise RuntimeError("[ADMX SHORT] Ls/Rs measurement is outside the allowed limits.\n"
                                    "Check the short calibration hardware.")
@@ -347,14 +364,14 @@ class freq_calib:
             for i, freq in enumerate(self.freq_array):
                 self.cmd(f"frequency {freq}")
                 self.cmd("calibrate reload")
-                self.calibrate("short", first_freq=(i == 0))
+                self.calibrate("short", first_freq=(i == 0), freq=freq)
             self.cmd(f"magnitude {self.mag}")
 
         if self.Cal_load:
             for i, freq in enumerate(self.freq_array):
                 self.cmd(f"frequency {freq}")
                 self.cmd("calibrate reload")
-                self.calibrate("load", first_freq=(i == 0))
+                self.calibrate("load", first_freq=(i == 0), freq=freq)
 
         Checkout_list = self.cmd("calibrate list")[:-1]
 
