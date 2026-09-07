@@ -30,7 +30,7 @@ from utils import calibrate_utils
 # USER CONFIGURATION
 # =============================================================================
 
-ADMXport = "COM4"
+ADMXport = "COM6"
 
 CALIBRATION_CONFIG = {
     # -------------------------------------------------------------------------
@@ -39,7 +39,7 @@ CALIBRATION_CONFIG = {
     # Set True to enable or False to skip the calibration step.
 
     "cal_open": False,
-    "cal_short": True,
+    "cal_short": False,
     "cal_load": False,
 
     # -------------------------------------------------------------------------
@@ -61,7 +61,7 @@ CALIBRATION_CONFIG = {
     #   "freq"     -> Single-frequency calibration
     #   "spectrum" -> Frequency-spectrum calibration
 
-    "calib_type": "spectrum",
+    "calib_type": "freq",
 
     # -------------------------------------------------------------------------
     # Frequency calibration
@@ -102,7 +102,6 @@ CALIBRATION_CONFIG = {
     # cal_filename:  Calibration file name
 
     "saveCal": True,
-    "cal_filename": "Cal_"
 }
 
 try:
@@ -117,7 +116,7 @@ try:
     )
 
     if ser.is_open:
-        calibration = calibrate_utils.freq_calib(serialCom=ser, **CALIBRATION_CONFIG)
+        calibration = calibrate_utils.FREQ_CAL(serialCom=ser, **CALIBRATION_CONFIG)
 
 except serial.SerialException as error:
     print(f"Serial error: {error}")

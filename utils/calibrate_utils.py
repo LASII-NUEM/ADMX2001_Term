@@ -2,9 +2,11 @@ import numpy as np
 import tkinter as tk
 from tkinter import messagebox
 import time
+import os
+from datetime import datetime
 
 
-class freq_calib:
+class FREQ_CAL:
 
     def __init__(
             self,
@@ -25,7 +27,6 @@ class freq_calib:
             cal_short: bool,
             cal_load: bool,
             saveCal: bool,
-            cal_filename: str,
             offset: float = 0,
             delay: float = 200):
 
@@ -82,10 +83,15 @@ class freq_calib:
         self.xt = xt
 
         self.saveCal = saveCal
-        self.cal_filename = cal_filename
 
         scaleType = ("log", "linear")
         if self.scale not in scaleType:
+            raise TypeError(f"[ADMX_Calibrate] Unknown Scale Type! Available Types:{type(scaleType)}")
+        if self.scale == "log":
+            self.freq_array = np.logspace(np.log10(self.init_freq), np.log10(self.final_freq), self.Freqpoints)
+        elif self.scale == "linear":
+            self.freq_array = np.linspace(self.init_freq, self.final_freq, self.Freqpoints)
+        else:
             raise TypeError(f"[ADMX_Calibrate] Unknown Scale Type! Available Types:{type(scaleType)}")
 
         CalType = ("freq", "spectrum")
@@ -93,7 +99,6 @@ class freq_calib:
             raise TypeError(f"[ADMX_Calibrate] Unknown Calibration Type! Available Types:{type(CalType)}")
 
         #  check parameters limits
-
         if self.init_freq < 1:
             raise TypeError(f"[ADMX_meas] Initial frequency under the limit")
 
@@ -104,6 +109,22 @@ class freq_calib:
             raise TypeError(f"[ADMX_meas] Calibration points over the limit")
 
 
+        #  set Calibration Mode
+        if  any([self.Cal_open, self.Cal_short, self.Cal_load]):
+            if self.erase():
+                if self.caltype == "freq":
+                    self.freq_calib()
+                elif self.caltype == "spectrum":
+                    self.Spectrum_calib()
+                else:
+                    raise TypeError(f"[ADMX_Calibrate] Unknown Calibration Type! Available Types:{type(CalType)}")
+        else:
+            print("[ADMX Calibration] No calibration type selected")
+
+        if self.saveCal:
+            self.savecal()
+
+    def erase(self):
         # First of all Erase the previous calibration
         self.cmd(f"calibrate erase")
         erase_response = self.cmd(f"Analog123")
@@ -112,25 +133,9 @@ class freq_calib:
             print("-----------------------------------------\n")
             print(f"Erase calibration completed.  ☑ \n")
             print("-----------------------------------------\n")
-
         else:
             raise RuntimeError(f" Erase Calibration was not completed.")
-
-        #  set Calibration Mode
-        if self.caltype == "freq":
-            self.freq_calib()
-
-        elif self.caltype == "spectrum":
-
-            if self.scale == "log":
-                self.freq_array = np.logspace(np.log10(self.init_freq), np.log10(self.final_freq), self.Freqpoints)
-            elif self.scale == "linear":
-                self.freq_array = np.linspace(self.init_freq, self.final_freq, self.Freqpoints)
-            self.Spectrum_calib()
-
-        else:
-            raise TypeError(f"[ADMX_Calibrate] Unknown Calibration Type! Available Types:{type(CalType)}")
-
+        return True
 
     def cmd(self, command):
         """
@@ -171,7 +176,7 @@ class freq_calib:
             return response
 
         # MULTILINE CALIBRATION RESPONSE
-        if command_lower.startswith("calibrate"):
+        if command_lower.startswith("calibrate") or command_lower.startswith("rdcal"):
 
             response = []
 
@@ -234,7 +239,7 @@ class freq_calib:
 
         return False
 
-    def calibrate(self, calib_type, freq ,first_freq=True):
+    def calibrate(self, calib_type, freq, first_freq=True):
 
         if first_freq and calib_type != "short":
             if not self.confirm_hardware_setup(calib_type):
@@ -299,7 +304,7 @@ class freq_calib:
 
         if self.Cal_open:
             self.cmd(f"frequency {self.Freq}")
-            self.calibrate("open", freq = self.Freq, first_freq=True)
+            self.calibrate("open", freq=self.Freq, first_freq=True)
 
         if self.Cal_short:
 
@@ -315,11 +320,11 @@ class freq_calib:
             self.cmd(f"setgain ch1 {self.gain_Ch1}")
             self.cmd(f"frequency {self.Freq}")
             self.cmd(f"magnitude 0.2")
-            self.calibrate("short", freq = self.Freq, first_freq=True)
+            self.calibrate("short", freq=self.Freq, first_freq=True)
             self.cmd(f"magnitude {self.mag}")
 
         if self.Cal_load:
-            self.calibrate("load",freq = self.Freq, first_freq=True)
+            self.calibrate("load", freq=self.Freq, first_freq=True)
 
         Checkout_list = self.cmd(f"calibrate list")
         List_freq = float(Checkout_list.split(":")[1].split()[0])
@@ -387,5 +392,55 @@ class freq_calib:
             root.destroy()
         else:
             raise RuntimeError(f" Calibration List was not completed.")
+
+        return None
+
+    def savecal(self):
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filepath = f"./calibration/ADMX_Cal_{timestamp}.txt"
+        directory = os.path.dirname(filepath)
+        if directory:
+            os.makedirs(directory, exist_ok=True)
+
+        with open(filepath, "w") as file:
+
+            if self.caltype == "spectrum":
+                for i, freq in enumerate(self.freq_array):
+
+                    self.cmd(f"frequency {freq}")
+                    self.cmd("calibrate reload")
+
+                    save_response = self.cmd(f"rdcal {self.gain_Ch0} {self.gain_Ch1}")
+
+                    file.write(f"[FREQUENCY {freq}]\n")
+
+                    for line in save_response:
+                        if "=" in line:
+                            file.write(line + "\n")
+
+                    file.write("\n")
+
+            elif self.caltype == "freq":
+
+                self.cmd(f"frequency {self.Freq}")
+                self.cmd("calibrate reload")
+
+                save_response = self.cmd(f"rdcal {self.gain_Ch0} {self.gain_Ch1}")
+
+                file.write(f"[FREQUENCY {self.Freq}]\n")
+
+                for line in save_response:
+                    if "=" in line:
+                        file.write(line + "\n")
+
+                file.write("\n")
+
+            else:
+                raise TypeError(f"[ADMX_Calibrate] Unknown Calibration Type!")
+
+        print("-----------------------------------------\n")
+        print(f"[ADMX Calibration] Saved to {filepath} ☑☑☑ \n")
+        print("-----------------------------------------\n")
 
         return None
