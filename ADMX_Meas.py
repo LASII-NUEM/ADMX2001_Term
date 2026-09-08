@@ -40,6 +40,9 @@ MEASUREMENT_CONFIG = {
     #   "spectrum" -> Frequency-spectrum calibration
     "meas_type": "spectrum",
 
+    # Measurement filename
+    "filename": "test",
+
     # Measurement Mode
     # Defines the measurement mode
     # DISPLAY_MODES = {
@@ -80,7 +83,7 @@ MEASUREMENT_CONFIG = {
     "init_freq": 1e3,
     "final_freq": 1e6,
     "scale": "LOG",
-    "points": 136,
+    "points": 4,
 
     # -------------------------------------------------------------------------
     # ADMX2001 Measurement Settings
@@ -98,12 +101,10 @@ MEASUREMENT_CONFIG = {
     # Calibration Standards
     # Select which calibration standards was performed.
     # Set True to enable or False to skip the calibration step.
-    "cal_open": True,
-    "cal_short": True,
-    "cal_load": True,
-
-    # Measurement filename
-    "filename": "test",
+    # Calibration file
+    "check_cal": True,
+    "upload_cal": False,
+    "cal_file": "./calibration/ADMX_Cal_20260907_181031.txt",
 }
 
 try:

@@ -23,10 +23,10 @@ class freq_meas:
             count: int,
             mode: int,
             avg: int,
-            cal_open: bool,
-            cal_short: bool,
-            cal_load: bool,
-            filename:str,
+            check_cal: bool,
+            upload_cal: bool,
+            cal_file: str,
+            filename: str,
             Autogain: str,
             offset: float = 0,
             delay: float = 200,
@@ -76,22 +76,27 @@ class freq_meas:
         self.mode = mode
         self.avg = avg
 
-        self.Cal_open = cal_open
-        self.Cal_short = cal_short
-        self.Cal_load = cal_load
+        self.cal_check = check_cal
+        self.cal_upload = upload_cal
+        self.cal_file = cal_file
 
-        self.filename=filename
-
+        self.filename = filename
 
         scaleType = ("log", "linear")
         if self.scale not in scaleType:
             raise TypeError(f"[ADMX_meas] Unknown Scale Type! Available Types:{type(scaleType)}")
+        if self.scale == "log":
+            self.freq_array = np.logspace(np.log10(self.init_freq), np.log10(self.final_freq), self.Freqpoints)
+        elif self.scale == "linear":
+            self.freq_array = np.linspace(self.init_freq, self.final_freq, self.Freqpoints)
+        else:
+            raise TypeError(f"[ADMX_Calibrate] Unknown Scale Type! Available Types:{type(scaleType)}")
 
         MeasType = ("freq", "spectrum")
         if self.meastype not in MeasType:
             raise TypeError(f"[ADMX_meas] Unknown Calibration Type! Available Types:{type(MeasType)}")
 
-        if self.init_freq <1:
+        if self.init_freq < 1:
             raise TypeError(f"[ADMX_meas] Initial frequency under the limit")
 
         if self.final_freq > 10000:
@@ -99,7 +104,6 @@ class freq_meas:
 
         if self.final_freq > 10000:
             raise TypeError(f"[ADMX_meas] Final frequency over the limit")
-
 
         DISPLAY_MODES = {0: ("Cs", "Rs"), 1: ("Cs", "D"), 2: ("Cs", "Q"), 3: ("Ls", "Rs"), 4: ("Ls", "D"),
                          5: ("Ls", "Q"), 6: ("R", "X"), 7: ("Z", "deg"), 8: ("Z", "rad"), 9: ("Cp", "Rp"),
@@ -109,23 +113,39 @@ class freq_meas:
             raise ValueError(f"[ADMX_Measure] Unknown Display Mode '{self.mode}'. "
                              f"Available modes: {tuple(DISPLAY_MODES.keys())}")
 
-        calibrate_list = self.cmd("calibrate list")[:-1]
-        # if not self.calibration_check(calibrate_list):
-        #     raise RuntimeError("[ADMX_Measure] Missing calibration. "
-        #                        "Please recalibrate the ADMX2001 before measuring.")
+        if self.cal_check:
 
+            self.calibrate_list = self.cmd("calibrate list")[:-1]
+
+            if not self.calibrate_list:
+                print("-----------------------------------------\n")
+                print("[ADMX_Measure] Calibration List is Empty \n")
+                print("-----------------------------------------\n")
+
+            else:
+                if self.meastype == "freq":
+                    List_freq = float(self.calibrate_list.split(":")[1].split()[0])
+                    if List_freq != self.Freq:
+                        return None
+
+                elif self.meastype == "spectrum":
+                    if len(self.calibrate_list) != self.Freqpoints:
+                        return None
+
+        if self.cal_upload:
+            if self.calibrate_list:
+              if not self.erase():
+                raise RuntimeError(f"[ADMX_Measure] Calibration Erase was not completed.")
+            if not self.writecal():
+                raise RuntimeError("[ADMX_Measure] Missing calibration. "
+                                   "Please recalibrate or load a calibration profile\n"
+                                   "to the ADMX2001 before measuring.")
+
+        #  Measure
         if self.meastype == "freq":
             self.freq_meas()
-
         elif self.meastype == "spectrum":
-
-            if self.scale == "log":
-                self.freq_array = np.logspace(np.log10(self.init_freq), np.log10(self.final_freq), self.Freqpoints)
-            elif self.scale == "linear":
-                self.freq_array = np.linspace(self.init_freq, self.final_freq, self.Freqpoints)
-
             self.Spectrum_meas()
-
         else:
             raise TypeError(f"[ADMX_Calibrate] Unknown Calibration Type! Available Types:{type(MeasType)}")
 
@@ -148,6 +168,10 @@ class freq_meas:
 
         # Discard terminal input/echo
         self.ser.readline()
+
+        # CALIBRATE ERASE
+        if command_lower.startswith("calibrate erase"):
+            return None
 
         if command_lower.startswith("z") or command_lower.startswith("calibrate list"):
             response = []
@@ -266,5 +290,61 @@ class freq_meas:
         if not self.saveCSV():
             raise TypeError(f"[ADMX_Measure] Unable to save to measurement in (.npy) file.")
 
-
         return None
+
+    def writecal(self):
+
+        freq = None
+
+        with open(self.cal_file, "r") as file:
+            for line in file:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                # New frequency
+                if line.startswith("[FREQUENCY"):
+                    # Commit previous frequency
+                    if freq is not None:
+                        self.cmd("calibrate commit")
+                        self.cmd("Analog123")
+
+                    freq = float(line.replace("[FREQUENCY", "").replace("]", "").strip())
+                    self.cmd(f"frequency {freq}")
+                    continue
+
+                # Calibration coefficient
+                if "=" in line:
+                    name, value = line.split("=", 1)
+
+                    self.cmd(f"storecal "
+                             f"{self.gain_Ch0} "
+                             f"{self.gain_Ch1} "
+                             f"{name.strip()} "
+                             f"{value.strip()}")
+
+            # Commit last frequency
+            if freq is not None:
+                self.cmd(f"calibrate commit")
+                commit_response = self.cmd(f"Analog123")
+
+                if commit_response.lower().startswith("commit : success"):
+                    print("-----------------------------------------\n")
+                    print(f" Upload calibration - Commited.  ☑☑☑ \n")
+                    print("-----------------------------------------\n")
+                    return True
+                else:
+                    print(f"Upload Calibration was not commited.")
+                    return False
+
+    def erase(self):
+
+        self.cmd(f"calibrate erase")
+        erase_response = self.cmd(f"Analog123")
+
+        if erase_response.lower().startswith("erase : success"):
+            print("-----------------------------------------\n")
+            print(f"Erase calibration completed.  ☑☑☑ \n")
+            print("-----------------------------------------\n")
+        else:
+            return False
+        return True
