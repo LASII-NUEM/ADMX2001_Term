@@ -1,4 +1,10 @@
 from utils import plot_utils
+import os
+import glob
+import matplotlib.pyplot as plt
+import numpy as np
+
+
 # =============================================================================
 # ADMX2001 Terminal Framework
 # =============================================================================
@@ -22,9 +28,12 @@ from utils import plot_utils
 #   Python
 # =============================================================================
 
-filename = r"./results/...."
+folder = r"./results/Testes-03.09"
+files = []
+files.extend(glob.glob(os.path.join(folder, "*.npy")))
 
-data = plot_utils.ReadNPY(filename)
-
-data.plot()
-
+Data = []
+for file in files:
+    data = plot_utils.ReadNPY(file)
+    data.plot()
+    Data.append(data)
