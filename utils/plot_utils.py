@@ -159,15 +159,15 @@ class ReadNPY:
             for retry in range(data.count):
 
                 if self.axis == "log":
-                    ax1.semilogx(data.freq, data.meas1_mean, color="b", label=f"Retry {retry}")
-                    ax2.semilogx(data.freq, data.meas2_mean, color="r", label=f"Retry {retry}")
+                    ax1.semilogx(data.freq*1e3, data.meas1_mean, color="b")
+                    ax2.semilogx(data.freq*1e3, data.meas2_mean, color="r")
                 if self.axis == "linear":
-                    ax1.loglog(data.freq, data.meas1_mean, color="b", label=f"Retry {retry}")
-                    ax2.loglog(data.freq, data.meas2_mean, color="r", label=f"Retry {retry}")
+                    ax1.loglog(data.freq*1e3, data.meas1_mean, color="b")
+                    ax2.loglog(data.freq*1e3, data.meas2_mean, color="r")
 
             ax1.set_xlabel("Frequency [Hz]")
-            ax1.set_ylabel(ylabel1)
-            ax2.set_ylabel(ylabel2)
+            ax1.set_ylabel(ylabel1, color="b")
+            ax2.set_ylabel(ylabel2, color="r")
 
             ax1.set_title(f"ADMX2001 - Average {data.meas1} | {data.meas2}")
             ax1.grid(True)
@@ -180,12 +180,12 @@ class ReadNPY:
             ax2 = ax1.twinx()
             retries = np.arange(data.count)
 
-            ax1.plot(retries, data.meas1_array[0, :], color="b", label=data.meas1)
-            ax2.plot(retries, data.meas2_array[0, :], color="r", label=data.meas2)
+            ax1.plot(retries, data.meas1_array[0, :], color="b", label=f"Retry {retries}")
+            ax2.plot(retries, data.meas2_array[0, :], color="r", label=f"Retry {retries}")
 
             ax1.set_xlabel("Frequency [Hz]")
-            ax1.set_ylabel(ylabel1)
-            ax2.set_ylabel(ylabel2)
+            ax1.set_ylabel(ylabel1, color = "b")
+            ax2.set_ylabel(ylabel2, color = "r")
 
             ax1.set_title(f"ADMX2001 - {data.meas1} | {data.meas2} "
                           f"@ {data.freq[0]:g} Hz")
