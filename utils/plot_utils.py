@@ -142,9 +142,10 @@ class ReadNPY:
                 self.meas1_array[f_idx, retry_idx] = value1
                 self.meas2_array[f_idx, retry_idx] = value2
 
-    def plot(self):
+    def plot(self, file):
 
         data = self
+        self.filename = file.split("\\")[-1].split(".npy")[0]
 
         ylabel1 = (f"{data.meas1} [{data.unit1}]"
                    if data.unit1 else data.meas1)
@@ -152,24 +153,27 @@ class ReadNPY:
         ylabel2 = (f"{data.meas2} [{data.unit2}]"
                    if data.unit2 else data.meas2)
 
-        if data.meastype == "spectrum":
+        freqs = data.freq*1e3
 
+        if data.meastype == "spectrum":
             fig, ax1 = plt.subplots(figsize=(10, 6))
             ax2 = ax1.twinx()
-            for retry in range(data.count):
 
-                if self.axis == "log":
-                    ax1.semilogx(data.freq*1e3, data.meas1_mean, color="b")
-                    ax2.semilogx(data.freq*1e3, data.meas2_mean, color="r")
-                if self.axis == "linear":
-                    ax1.loglog(data.freq*1e3, data.meas1_mean, color="b")
-                    ax2.loglog(data.freq*1e3, data.meas2_mean, color="r")
+
+            if self.axis == "log":
+                ax1.plot(freqs, data.meas1_mean, color="b")
+                ax2.plot(freqs, data.meas2_mean, color="r")
+                ax1.set_xscale("log")
+
+            elif self.axis == "linear":
+                ax1.loglog(freqs, data.meas1_mean, color="b")
+                ax2.loglog(freqs, data.meas2_mean, color="r")
 
             ax1.set_xlabel("Frequency [Hz]")
             ax1.set_ylabel(ylabel1, color="b")
             ax2.set_ylabel(ylabel2, color="r")
 
-            ax1.set_title(f"ADMX2001 - Average {data.meas1} | {data.meas2}")
+            ax1.set_title(f"ADMX2001 - Average {data.meas1} | {data.meas2} - {self.filename}")
             ax1.grid(True)
             plt.tight_layout()
             plt.show()
@@ -184,11 +188,10 @@ class ReadNPY:
             ax2.plot(retries, data.meas2_array[0, :], color="r", label=f"Retry {retries}")
 
             ax1.set_xlabel("Frequency [Hz]")
-            ax1.set_ylabel(ylabel1, color = "b")
-            ax2.set_ylabel(ylabel2, color = "r")
+            ax1.set_ylabel(ylabel1, color="b")
+            ax2.set_ylabel(ylabel2, color="r")
 
-            ax1.set_title(f"ADMX2001 - {data.meas1} | {data.meas2} "
-                          f"@ {data.freq[0]:g} Hz")
+            ax1.set_title(f"ADMX2001 - {data.meas1} | {data.meas2} - {self.filename} @ {data.freq[0]:g} Hz")
 
             ax1.grid(True)
 
@@ -212,3 +215,25 @@ class ReadNPY:
 
         else:
             raise ValueError(f"[ADMX_plot] Unknown measurement type. Curr. type {data.meastype}.")
+
+    def nyquist(self, file):
+
+        data = self
+
+        self.filename = file.split("\\")[-1].split(".npy")[0]
+
+        freq = data.freq * 1e3
+        omegas = 2 * np.pi * freq
+
+        self.z_line = data.meas2_mean / (1 + (omegas[:] * data.meas1_mean * data.meas2_mean) ** 2)
+        self.z_2line = (omegas[:] * data.meas1_mean * (data.meas2_mean ** 2)) / (
+                1 + (omegas[:] * data.meas1_mean * data.meas2_mean) ** 2)
+
+        fig = plt.Figure()
+        plt.plot(self.z_line, self.z_2line)
+        plt.title(f"Nyquist - {self.filename}", fontsize=13)
+        plt.xlabel("Z'")
+        plt.ylabel("Z''")
+        plt.tight_layout()
+        plt.grid(True)
+        plt.show()
